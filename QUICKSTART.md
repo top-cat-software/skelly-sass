@@ -4,37 +4,56 @@ Get the skelly-saas local development environment running.
 
 ## Prerequisites
 
-You need **Docker** installed and running. All application code (PHP, Node) runs inside containers — you do not need PHP, Composer, Node, or npm installed locally.
+All application code (PHP, Node) runs inside containers — you do not need PHP, Composer, Node, or npm installed locally.
 
 ### Required Tools
 
 | Tool | Purpose | Install |
 |------|---------|---------|
+| **Git** | Version control | [git-scm.com/downloads](https://git-scm.com/downloads) |
+| **Make** | Build automation (runs Makefile targets) | See platform instructions below |
 | **Docker** | Container runtime | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
 | **k3d** | Local Kubernetes cluster (k3s in Docker) | [k3d.io](https://k3d.io/) |
+| **kubectl** | Kubernetes CLI | [kubernetes.io/docs/tasks/tools](https://kubernetes.io/docs/tasks/tools/) |
 | **Helm** | Kubernetes package manager | [helm.sh/docs/intro/install](https://helm.sh/docs/intro/install/) |
 | **Tilt** | Live-reload and dev workflow orchestration | [docs.tilt.dev/install](https://docs.tilt.dev/install.html) |
-| **kubectl** | Kubernetes CLI | [kubernetes.io/docs/tasks/tools](https://kubernetes.io/docs/tasks/tools/) |
 | **kubeseal** | Client-side encryption for Sealed Secrets | [github.com/bitnami-labs/sealed-secrets](https://github.com/bitnami-labs/sealed-secrets#kubeseal) |
 | **Trivy** | Container image vulnerability scanning | [aquasecurity.github.io/trivy](https://aquasecurity.github.io/trivy/) |
 
-#### macOS (Homebrew)
+### macOS
+
+Install [Homebrew](https://brew.sh/) if you don't have it, then:
 
 ```bash
-brew install k3d helm tilt-dev/tap/tilt kubeseal trivy
+# Git and Make are included with Xcode Command Line Tools
+xcode-select --install
+
+# Docker Desktop — download from https://docs.docker.com/desktop/install/mac-install/
+# or install via Homebrew:
+brew install --cask docker
+
+# Kubernetes and dev tools
+brew install kubectl k3d helm tilt-dev/tap/tilt kubeseal trivy
 ```
 
-kubectl is bundled with Docker Desktop. If you don't have it:
+### Linux (Debian/Ubuntu)
 
 ```bash
-brew install kubectl
-```
+# Git and Make
+sudo apt-get update && sudo apt-get install -y git make
 
-#### Linux
+# Docker — follow the official instructions for your distribution:
+# https://docs.docker.com/engine/install/
+# After install, add your user to the docker group:
+sudo usermod -aG docker $USER
+# Log out and back in for the group change to take effect.
 
-```bash
 # k3d
 curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+# kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
 # Helm
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -42,14 +61,11 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 # Tilt
 curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
-# kubectl
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-
 # kubeseal
 KUBESEAL_VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
 curl -OL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
 tar -xvzf kubeseal-*.tar.gz kubeseal && sudo mv kubeseal /usr/local/bin/
+rm kubeseal-*.tar.gz
 
 # Trivy
 sudo apt-get install -y wget apt-transport-https gnupg lsb-release
@@ -58,23 +74,62 @@ echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.
 sudo apt-get update && sudo apt-get install -y trivy
 ```
 
-#### Windows (WSL2)
+### Linux (Fedora/RHEL)
 
-skelly-saas runs on Windows via WSL2 with Docker Desktop. Install Docker Desktop with the WSL2 backend enabled, then follow the Linux instructions above inside your WSL2 distribution.
+```bash
+# Git and Make
+sudo dnf install -y git make
+
+# Docker — follow the official instructions:
+# https://docs.docker.com/engine/install/fedora/
+sudo usermod -aG docker $USER
+
+# k3d
+curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+# kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+# Helm
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Tilt
+curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+# kubeseal
+KUBESEAL_VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+curl -OL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
+tar -xvzf kubeseal-*.tar.gz kubeseal && sudo mv kubeseal /usr/local/bin/
+rm kubeseal-*.tar.gz
+
+# Trivy
+sudo rpm -ivh https://github.com/aquasecurity/trivy/releases/latest/download/trivy_$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')_Linux-64bit.rpm
+```
+
+### Windows (WSL2)
+
+skelly-saas runs on Windows via WSL2 with Docker Desktop:
+
+1. Install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with a Ubuntu distribution.
+2. Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) with the WSL2 backend enabled.
+3. Open your WSL2 terminal and follow the **Linux (Debian/Ubuntu)** instructions above.
 
 ### Verify Installation
 
+Run all of these — each should return version information without errors:
+
 ```bash
+git --version
+make --version
 docker version
 k3d version
+kubectl version --client
 helm version
 tilt version
-kubectl version --client
 kubeseal --version
 trivy --version
 ```
-
-All commands should return version information without errors.
 
 ## Why k3d?
 

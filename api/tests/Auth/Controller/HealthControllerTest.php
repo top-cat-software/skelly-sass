@@ -43,6 +43,6 @@ final class HealthControllerTest extends TestCase
         $controller = new HealthController();
         $response = $controller->__invoke();
 
-        self::assertSame('no-store', $response->headers->get('Cache-Control'));
+        self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
     }
 }

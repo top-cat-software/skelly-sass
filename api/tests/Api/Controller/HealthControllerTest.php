@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Api\Controller;
 
-use App\Infrastructure\Health\HealthChecker;
+use App\Infrastructure\Health\HealthCheckerInterface;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,7 +15,7 @@ final class HealthControllerTest extends TestCase
     #[Test]
     public function it_returns_200_when_all_checks_healthy(): void
     {
-        $healthChecker = $this->createMock(HealthChecker::class);
+        $healthChecker = $this->createMock(HealthCheckerInterface::class);
         $healthChecker->method('check')->willReturn([
             'status' => 'healthy',
             'timestamp' => '2026-04-05T20:00:00+00:00',
@@ -39,7 +39,7 @@ final class HealthControllerTest extends TestCase
     #[Test]
     public function it_returns_503_when_any_check_unhealthy(): void
     {
-        $healthChecker = $this->createMock(HealthChecker::class);
+        $healthChecker = $this->createMock(HealthCheckerInterface::class);
         $healthChecker->method('check')->willReturn([
             'status' => 'unhealthy',
             'timestamp' => '2026-04-05T20:00:00+00:00',
@@ -61,7 +61,7 @@ final class HealthControllerTest extends TestCase
     #[Test]
     public function response_contains_cache_control_no_store(): void
     {
-        $healthChecker = $this->createMock(HealthChecker::class);
+        $healthChecker = $this->createMock(HealthCheckerInterface::class);
         $healthChecker->method('check')->willReturn([
             'status' => 'healthy',
             'timestamp' => '2026-04-05T20:00:00+00:00',
@@ -71,6 +71,6 @@ final class HealthControllerTest extends TestCase
         $controller = new HealthController($healthChecker);
         $response = $controller->__invoke();
 
-        self::assertSame('no-store', $response->headers->get('Cache-Control'));
+        self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
     }
 }

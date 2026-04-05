@@ -71,12 +71,15 @@ src/
 
 Route groups `(auth)` and `(app)` apply different layouts (public vs authenticated).
 
-### Styling: Tailwind CSS v4
+### Styling: Svelte Scoped Styles + CSS Custom Properties
 
-Bits UI components are unstyled — **Tailwind CSS v4** provides the styling layer:
-- CSS-native configuration (no `tailwind.config.js`), smaller output, faster builds.
-- Most Bits UI examples and community patterns assume Tailwind.
-- The skeleton includes a consistent design token set (colours, spacing, typography) via Tailwind's theme.
+Bits UI components are unstyled — **Svelte's built-in scoped styles** provide the styling layer:
+- Svelte's compiler scopes all `<style>` blocks to their component by default — no class name collisions, no global leakage.
+- A central **design token file** (`tokens.css`) defines CSS custom properties for colours, spacing, typography scales, and breakpoints. Components consume tokens exclusively — arbitrary values are prohibited and enforced via code review.
+- A thin **global stylesheet** (`global.css`) provides a CSS reset, base typography, and the custom property definitions.
+- Bits UI's data attributes (`data-state="open"`, `data-disabled`) are targeted directly with CSS selectors — no utility classes needed.
+- Modern CSS features (nesting, `@layer`, container queries, `:has()`) are used where appropriate.
+- No CSS framework dependency — adopters are free to add Tailwind, UnoCSS, or any other framework if they prefer.
 
 ### Complementary Libraries
 
@@ -128,7 +131,7 @@ Content-Security-Policy:
 ```
 
 - `frame-ancestors 'none'` prevents clickjacking.
-- `'unsafe-inline'` for styles is required for Svelte's scoped styles and Tailwind — this trade-off is documented.
+- `'unsafe-inline'` for styles is required for Svelte's scoped styles — this trade-off is documented.
 - Origins are configurable via environment variables.
 
 ### Security Controls
@@ -157,12 +160,12 @@ Content-Security-Policy:
 - Svelte 5 runes provide a clean, modern reactivity model with no migration debt
 - Bits UI provides accessibility out of the box (ARIA, keyboard navigation)
 - httpOnly cookie proxy keeps JWTs out of JavaScript entirely — eliminates XSS-based token theft
-- Tailwind v4 provides consistent styling with minimal CSS output
+- No CSS framework dependency — adopters choose their own styling approach
 - Strict CSP and security controls demonstrate production-grade frontend security
 
 ### Negative
 - Smaller talent pool compared to React
-- `'unsafe-inline'` for styles weakens CSP (required by Svelte + Tailwind)
+- `'unsafe-inline'` for styles weakens CSP (required by Svelte's scoped style injection)
 - Bits UI is less mature than Radix — may encounter edge cases or missing components
 - Multiple complementary libraries (superforms, sonner, tanstack) add dependency surface
 

@@ -3,7 +3,8 @@
 # See ADR-0007 for architecture context.
 apiVersion: k3d.io/v1alpha5
 kind: Simple
-name: skelly-saas
+metadata:
+  name: skelly-saas
 servers: 1
 agents: 1
 ports:

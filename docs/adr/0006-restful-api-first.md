@@ -11,7 +11,7 @@ The SaaS skeleton needs an API layer that the front-end and potentially third-pa
 - Expose CRUD operations for core resources (users, tenants, configuration)
 - Support authentication via JWT bearer tokens
 - Be well-documented and easy for adopters to extend
-- Handle both synchronous reads and async command dispatch (via Pulsar)
+- Handle both synchronous reads and async command dispatch (via Symfony Messenger)
 
 The project owner is open to either REST or GraphQL.
 

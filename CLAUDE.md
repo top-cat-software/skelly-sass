@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Component-based architecture**: API (PHP), OAuth server (PHP, co-deployed with API), Workers (PHP), Frontend (SvelteKit + Bits UI), Ingress (Traefik)
 - **Data store**: PostgreSQL (with materialised views, JSONB, PgBouncer)
-- **Messaging**: Apache Pulsar for async job dispatch and event streaming
+- **Messaging**: Redis Streams (via Symfony Messenger) for async job dispatch and event streaming
 - **Auth**: League OAuth2 Server with JWT, 2FA (TOTP), social login (Google, GitHub)
 - **API**: RESTful, JSON, versioned via URI (`/v1/`), RFC 7807 errors, OpenAPI 3.1
 - **Deployment**: Kubernetes + Helm (umbrella chart with sub-charts per component)

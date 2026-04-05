@@ -186,6 +186,6 @@ The skeleton supports the **Client Credentials** grant for service-to-service au
 ## Related Decisions
 
 - [ADR-0001](0001-high-level-architecture.md) — OAuth server as a component in the architecture
-- [ADR-0004](0004-message-streaming-with-pulsar.md) — Email verification dispatched via Pulsar (Symfony Messenger)
+- [ADR-0009](0009-redis-streams-for-messaging.md) — Email verification dispatched via message transport (Redis Streams)
 - [ADR-0005](0005-svelte-frontend.md) — SvelteKit BFF handles token exchange and httpOnly cookie management
 - [ADR-0008](0008-use-symfony-framework.md) — Symfony 7 framework, Security component integration

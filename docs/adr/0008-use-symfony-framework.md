@@ -12,7 +12,7 @@ The confirmed feature scope includes:
 
 - RESTful API with OpenAPI documentation (ADR-0006)
 - OAuth 2.0 server with registration, login, 2FA, social login (ADR-0003)
-- Async worker processing via Pulsar (ADR-0004)
+- Async worker processing via Redis Streams (ADR-0009)
 - In-app inbox / messaging system
 - WebSocket / real-time push notifications
 - Multi-channel notifications (email, in-app, push)
@@ -34,7 +34,7 @@ Full-featured framework with extensive ecosystem (Horizon, Echo, Reverb, Sanctum
 
 ### Option 3: Symfony 7 (Selected)
 Component-based full-stack framework with 50+ decoupled components.
-- **Pros**: Components are independently usable and PSR-compliant, excellent DI with autowiring, Messenger component provides transport abstraction (custom Pulsar transport is ~1 class), native Mercure integration for real-time push, Notifier for multi-channel notifications, RateLimiter component, Serializer, Validator, Console, Mailer — all battle-tested. Doctrine DBAL/Migrations integrate natively. Strong typing and explicit configuration.
+- **Pros**: Components are independently usable and PSR-compliant, excellent DI with autowiring, Messenger component provides transport abstraction (built-in Redis transport, Pulsar available as upgrade), native Mercure integration for real-time push, Notifier for multi-channel notifications, RateLimiter component, Serializer, Validator, Console, Mailer — all battle-tested. Doctrine DBAL/Migrations integrate natively. Strong typing and explicit configuration.
 - **Cons**: Steeper initial learning curve than Slim, heavier bootstrap than a micro-framework, configuration can be verbose, compiled container adds a build step.
 
 ## Decision
@@ -45,7 +45,7 @@ Use **Symfony 7** as the PHP framework for both the API and Auth applications.
 
 The deciding factors, in order of weight:
 
-1. **Messenger + Pulsar transport**: Symfony Messenger provides the exact transport abstraction we planned to build manually (see ADR-0004 review). Writing a Pulsar transport is a single class implementing `TransportInterface`. Routing, retry, serialisation, middleware, and handler dispatch come free. This alone saves significant development and maintenance effort.
+1. **Messenger + built-in Redis transport**: Symfony Messenger provides transport abstraction with a first-party Redis Streams transport (`symfony/redis-messenger`). No custom transport code needed. Routing, retry, serialisation, middleware, and handler dispatch come free. Upgrading to Pulsar later is a DSN change + adding a custom transport class — no application code changes. See ADR-0009.
 
 2. **Mercure for real-time push**: The inbox and push notification requirements need server-to-browser real-time delivery. Mercure is a purpose-built protocol with a lightweight Go hub server. Symfony has native integration — publishing an update is a single service call. This is simpler and more scalable than raw WebSockets for notification/inbox use cases, works behind load balancers without sticky sessions, and doesn't require a separate PHP long-running process.
 
@@ -78,7 +78,7 @@ src/
 │   └── Service/            # Domain services
 ├── Infrastructure/         # Shared infrastructure
 │   ├── Database/           # Doctrine DBAL repositories, migrations
-│   ├── Messaging/          # Pulsar transport, message handlers
+│   ├── Messaging/          # Redis transport config, message handlers
 │   ├── Notification/       # Notifier channels (inbox, push)
 │   └── Security/           # JWT validation, password hashing
 └── Worker/                 # Worker entry point
@@ -94,7 +94,7 @@ Traefik routes `/auth/*` to the Auth kernel and `/api/*` to the API kernel. Both
 |-----------|---------|----------|
 | **HttpKernel** | Request handling, controller dispatch | Slim router |
 | **DependencyInjection** | Autowired, compiled DI container | Manual PHP-DI setup |
-| **Messenger** | Async message dispatch + Pulsar transport | Custom MessageProducer/Consumer interfaces |
+| **Messenger** | Async message dispatch + Redis transport (built-in) | Custom MessageProducer/Consumer interfaces |
 | **Mercure** | Real-time push to browsers (SSE) | Custom WebSocket server |
 | **Notifier** | Multi-channel notifications | Custom notification system |
 | **RateLimiter** | Per-endpoint, per-account throttling | Custom rate limiting middleware |
@@ -115,7 +115,7 @@ Traefik routes `/auth/*` to the Auth kernel and `/api/*` to the API kernel. Both
 
 ### Positive
 - Batteries-included: inbox, push notifications, async messaging, rate limiting, validation all have framework-level support
-- Messenger + custom Pulsar transport eliminates the need for a hand-rolled messaging abstraction
+- Messenger + built-in Redis transport eliminates the need for any custom messaging code
 - Mercure gives real-time push without a custom WebSocket server or PHP long-running process
 - Doctrine DBAL integrates natively — no adapter layer
 - Adopters can add Symfony components incrementally as their requirements grow
@@ -138,7 +138,7 @@ Traefik routes `/auth/*` to the Auth kernel and `/api/*` to the API kernel. Both
 - [ADR-0001](0001-high-level-architecture.md) — component architecture that this framework serves
 - [ADR-0002](0002-use-postgresql.md) — Doctrine DBAL integration
 - [ADR-0003](0003-oauth2-server-with-php.md) — League OAuth2 Server integrated via Symfony Security authenticators
-- [ADR-0004](0004-message-streaming-with-pulsar.md) — Pulsar accessed via Symfony Messenger custom transport
+- [ADR-0009](0009-redis-streams-for-messaging.md) — Redis Streams via Symfony Messenger built-in transport
 - [ADR-0006](0006-restful-api-first.md) — API structure built on Symfony HttpKernel + controllers
 - [ADR-0007](0007-container-orchestration-with-kubernetes.md) — Mercure hub added to Helm chart
 - Supersedes the Slim Framework recommendation made in the Principal PHP review on issue #3

@@ -50,7 +50,7 @@ Adopt **Option 3: Component-Based Architecture**. The skeleton is designed to be
 │                         │                               │
 │                         ▼                               │
 │                  ┌──────────────┐                        │
-│                  │   Pulsar     │                        │
+│                  │   Redis      │                        │
 │                  │   (Streams)  │                        │
 │                  └──────┬───────┘                        │
 │                         │                               │
@@ -70,7 +70,7 @@ Adopt **Option 3: Component-Based Architecture**. The skeleton is designed to be
 | **Frontend** | Svelte + Bits UI | User-facing SPA — auth flows, dashboard shell |
 | **API Gateway** | Symfony 7 (PHP) | RESTful API, request validation, auth middleware, command dispatch |
 | **OAuth 2.0 Server** | Symfony 7 (PHP) | User registration, login, password reset, 2FA, social login (Google, GitHub) |
-| **Message Streams** | Apache Pulsar | Async command/event transport between API and workers |
+| **Message Streams** | Redis Streams | Async command/event transport between API and workers via Symfony Messenger |
 | **Workers** | Symfony 7 (PHP) | Process async jobs via Symfony Messenger — email, provisioning, background tasks |
 | **Mercure Hub** | Mercure (Go) | Real-time push to browsers via SSE — notifications, inbox updates |
 | **Data Store** | PostgreSQL + PgBouncer | Primary OLTP store, materialised views for read-heavy queries, connection pooling |
@@ -88,7 +88,7 @@ Both applications share a common **Domain** and **Infrastructure** library layer
 1. **Frontend (SvelteKit server) → API**: HTTPS/REST with JWT bearer tokens. Browser sessions managed via httpOnly cookies — the browser never directly handles JWTs.
 2. **Frontend (browser) → OAuth Server**: Redirect-based flows for login, registration, and social auth (Authorization Code + PKCE). Token exchange handled by SvelteKit server routes.
 3. **API → OAuth Server**: Shared PHP interface within the same pod (not internal HTTP). The interface is designed so that swapping to HTTP later requires only a new implementation, not changes to calling code.
-4. **API → Workers**: Pulsar message streams via Symfony Messenger with a custom Pulsar transport (fire-and-forget commands, request-reply where needed).
+4. **API → Workers**: Redis Streams via Symfony Messenger's built-in Redis transport (fire-and-forget commands, request-reply where needed).
 5. **Workers → Data Store**: PostgreSQL connection via PgBouncer (transaction mode). Workers acquire a connection at job start and release it at job end.
 6. **API → Data Store**: PostgreSQL connection via PgBouncer for synchronous reads.
 
@@ -126,10 +126,9 @@ Components discover each other via **Kubernetes cluster DNS** (e.g. `api.default
 │   operational complexity disproportionate to the skeleton's     │
 │   threat model. Noted as a production hardening enhancement.    │
 │                                                                 │
-│   Pulsar MUST be configured with authentication and             │
-│   namespace-level authorisation, even within the cluster.       │
-│   A compromised component must not be able to inject messages   │
-│   into arbitrary topics. See ADR-0004.                          │
+│   Redis is configured with password authentication (AUTH)       │
+│   and optionally ACLs to restrict per-component access          │
+│   (API can publish, workers can consume). See ADR-0009.         │
 └────────────────────────┬────────────────────────────────────────┘
                          │
                          ▼
@@ -153,35 +152,35 @@ Components discover each other via **Kubernetes cluster DNS** (e.g. `api.default
 | Traefik | Frontend (SvelteKit) | HTTP | None (cluster-internal) | Yes |
 | Traefik | API / Auth | HTTP | None (cluster-internal) | Yes |
 | Frontend | API / Auth | HTTP | None (cluster-internal) | Yes |
-| API | Pulsar | HTTP/Binary | Pulsar token auth | Yes |
+| API | Redis | TCP | Redis AUTH password | Yes |
 | API | PostgreSQL (via PgBouncer) | TCP | DB credentials | Yes |
-| Workers | Pulsar | HTTP/Binary | Pulsar token auth | Yes |
+| Workers | Redis | TCP | Redis AUTH password | Yes |
 | Workers | PostgreSQL (via PgBouncer) | TCP | DB credentials | Yes |
 | API | Mercure Hub | HTTP | JWT publisher token | Yes |
 | Frontend | Mercure Hub | SSE | JWT subscriber token | Yes |
 | Frontend | PostgreSQL | — | — | **No** |
+| Frontend | Redis | — | — | **No** |
 | Workers | Traefik | — | — | **No** |
-| Pulsar | PostgreSQL | — | — | **No** |
 
 **NetworkPolicies**: the skeleton should document intended network restrictions (the "No" rows above) even if Kubernetes NetworkPolicies are not enforced in the initial release. Adopters deploying to production should implement NetworkPolicies to enforce this matrix.
 
 ### Secrets Management
 
-All component secrets (database credentials, JWT signing keys, Pulsar auth tokens, social login API keys) are managed via **Kubernetes Secrets**, injected as environment variables or mounted as files.
+All component secrets (database credentials, JWT signing keys, Redis password, social login API keys) are managed via **Kubernetes Secrets**, injected as environment variables or mounted as files.
 
 - **JWT signing keys** are mounted as files (not environment variables) to avoid accidental logging. See ADR-0003 for key management details.
 - **Database credentials** are separated per component with least-privilege access. See ADR-0002.
-- **Pulsar auth tokens** are per-component. See ADR-0004.
+- **Redis password** is shared across components that access Redis (API, workers). See ADR-0009.
 - Secret management strategy (Sealed Secrets, SOPS, or External Secrets Operator) is defined in ADR-0007.
 
 ### Local Development Resource Requirements
 
-Running the full stack locally (API, Auth, Workers, Pulsar standalone, PostgreSQL, PgBouncer, Traefik, Frontend, Mercure Hub) requires:
+Running the full stack locally (API, Auth, Workers, Redis, PostgreSQL, PgBouncer, Traefik, Frontend, Mercure Hub) requires:
 
-- **Minimum**: 8 GB RAM allocated to Docker, 4 CPU cores
-- **Recommended**: 16 GB RAM, 6 CPU cores
+- **Minimum**: 4 GB RAM allocated to Docker, 2 CPU cores
+- **Recommended**: 8 GB RAM, 4 CPU cores
 
-A **minimal profile** is provided via Helm values that runs only essential components (API, Auth, PostgreSQL, Frontend) without Pulsar or workers, for frontend-focused development or machines with limited resources.
+A **minimal profile** is provided via Helm values that runs only essential components (API, Auth, PostgreSQL, Redis, Frontend) without workers, for frontend-focused development or machines with limited resources.
 
 ## Consequences
 
@@ -198,15 +197,16 @@ A **minimal profile** is provided via Helm values that runs only essential compo
 
 ### Risks
 - Over-engineering for small teams who may not need independent scaling initially
-- Pulsar operational complexity may deter adoption (mitigated by providing good Helm defaults)
+- Redis single-node bottleneck under extreme load (mitigated by Sentinel/Cluster upgrade path and Pulsar escape hatch — see ADR-0009)
 - PHP worker processes need careful lifecycle management (memory leaks, signal handling)
 
 ## Related Decisions
 
 - [ADR-0002](0002-use-postgresql.md) — PostgreSQL as primary data store
 - [ADR-0003](0003-oauth2-server-with-php.md) — OAuth 2.0 server implementation
-- [ADR-0004](0004-message-streaming-with-pulsar.md) — Async messaging with Pulsar
+- [ADR-0004](0004-message-streaming-with-pulsar.md) — Original Pulsar decision (superseded by ADR-0009)
 - [ADR-0005](0005-svelte-frontend.md) — Front-end technology choice
 - [ADR-0006](0006-restful-api-first.md) — API style decision
 - [ADR-0007](0007-container-orchestration-with-kubernetes.md) — Deployment infrastructure
 - [ADR-0008](0008-use-symfony-framework.md) — Symfony 7 as the PHP framework
+- [ADR-0009](0009-redis-streams-for-messaging.md) — Redis Streams as default message transport

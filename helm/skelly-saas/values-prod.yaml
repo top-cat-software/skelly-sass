@@ -1,0 +1,34 @@
+# Production overrides — placeholder structure.
+# Actual production values are a future epic.
+# Usage: helm install skelly-saas helm/skelly-saas -f helm/skelly-saas/values-prod.yaml
+
+# global:
+#   api:
+#     replicas: 2
+#     image:
+#       pullPolicy: Always
+#     env:
+#       APP_ENV: prod
+#       APP_DEBUG: "0"
+#     resources:
+#       requests:
+#         cpu: 500m
+#         memory: 512Mi
+#       limits:
+#         cpu: 1000m
+#         memory: 1Gi
+#
+#   frontend:
+#     replicas: 2
+#     image:
+#       pullPolicy: Always
+#
+#   workers:
+#     replicas: 3
+#     image:
+#       pullPolicy: Always
+#
+# traefik:
+#   ingressRoute:
+#     dashboard:
+#       enabled: false

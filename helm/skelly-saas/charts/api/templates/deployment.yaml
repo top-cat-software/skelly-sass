@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: skelly-saas
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.global.api.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: skelly-saas
+    spec:
+      serviceAccountName: {{ .Release.Name }}-api
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: "{{ .Values.global.api.image.repository }}:{{ .Values.global.api.image.tag }}"
+          imagePullPolicy: {{ .Values.global.api.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.global.api.port | default 8080 }}
+              protocol: TCP
+          env:
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-api-config
+                  key: APP_ENV
+            - name: APP_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-api-config
+                  key: APP_DEBUG
+            - name: APP_SECRET
+              value: "skeleton-dev-secret-change-in-production"
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.global.postgresql.auth.username }}:{{ .Values.global.postgresql.auth.password }}@{{ .Release.Name }}-postgresql:5432/{{ .Values.global.postgresql.auth.database }}?serverVersion=16&charset=utf8"
+            - name: REDIS_URL
+              value: "redis://:{{ .Values.global.redis.auth.password }}@{{ .Release.Name }}-redis-master:6379"
+            - name: MESSENGER_TRANSPORT_DSN
+              value: "redis://:{{ .Values.global.redis.auth.password }}@{{ .Release.Name }}-redis-master:6379/messages"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: var
+              mountPath: /app/var
+          resources:
+            {{- toYaml .Values.global.api.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: var
+          emptyDir: {}

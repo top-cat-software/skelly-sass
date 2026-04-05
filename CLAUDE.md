@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**skelly-sass** is an open-source SaaS platform skeleton framework, licensed under MIT, owned by Top Cat Software Ltd.
+**skelly-saas** is an open-source SaaS platform skeleton framework, licensed under MIT, owned by Top Cat Software Ltd.
 
 ## Architecture
 

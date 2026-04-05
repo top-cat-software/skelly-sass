@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-api-config
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: skelly-saas
+data:
+  APP_ENV: {{ .Values.global.api.env.APP_ENV | default "prod" | quote }}
+  APP_DEBUG: {{ .Values.global.api.env.APP_DEBUG | default "0" | quote }}

@@ -1,0 +1,135 @@
+# Global defaults for skelly-saas.
+# Override with values-dev.yaml or values-prod.yaml per environment.
+#
+# Values under `global:` are accessible to all sub-charts via .Values.global.*
+# Third-party chart values (redis, postgresql, traefik, sealed-secrets) stay at
+# top level so those charts find them at their expected paths.
+
+global:
+  # -- API + Auth application (co-deployed, separate Symfony kernels)
+  api:
+    image:
+      repository: skelly-saas/api
+      tag: dev
+      pullPolicy: Never  # Local k3d images — no registry
+    replicas: 1
+    port: 8080
+    env:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # -- SvelteKit frontend
+  frontend:
+    image:
+      repository: skelly-saas/frontend
+      tag: dev
+      pullPolicy: Never
+    replicas: 1
+    port: 3000
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  # -- PHP worker fleet (same image as API, different entry point)
+  workers:
+    image:
+      repository: skelly-saas/api
+      tag: dev
+      pullPolicy: Never
+    replicas: 1
+    command: ["php"]
+    args: ["bin/console", "messenger:consume", "async", "--memory-limit=256M", "--time-limit=3600"]
+    terminationGracePeriodSeconds: 60
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # -- Ingress routing
+  ingress:
+    apiHost: api.localhost
+    appHost: app.localhost
+
+  # -- Shared credentials (also consumed by Bitnami sub-charts via global.*)
+  postgresql:
+    auth:
+      database: skelly_saas
+      username: skelly
+      password: "skelly-dev-pg-password"
+
+  redis:
+    auth:
+      password: "skelly-dev-redis-password"
+
+# -- Bitnami Redis
+redis:
+  enabled: true
+  master:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  replica:
+    replicaCount: 0
+  commonConfiguration: |-
+    appendonly yes
+    appendfsync everysec
+    maxmemory-policy noeviction
+
+# -- Bitnami PostgreSQL
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# -- Traefik ingress controller
+traefik:
+  enabled: true
+  providers:
+    kubernetesIngress:
+      enabled: false
+    kubernetesCRD:
+      enabled: true
+  ports:
+    web:
+      exposedPort: 80
+    websecure:
+      exposedPort: 443
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# -- Sealed Secrets controller
+sealed-secrets:
+  enabled: true

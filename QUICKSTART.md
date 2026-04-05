@@ -20,6 +20,9 @@ All application code (PHP, Node) runs inside containers — you do not need PHP,
 | **kubeseal** | Client-side encryption for Sealed Secrets | [github.com/bitnami-labs/sealed-secrets](https://github.com/bitnami-labs/sealed-secrets#kubeseal) |
 | **Trivy** | Container image vulnerability scanning | [aquasecurity.github.io/trivy](https://aquasecurity.github.io/trivy/) |
 
+<details>
+<summary>macOS installation instructions</summary>
+
 ### macOS
 
 Install [Homebrew](https://brew.sh/) if you don't have it, then:
@@ -35,6 +38,10 @@ brew install --cask docker
 # Kubernetes and dev tools
 brew install kubectl k3d helm tilt-dev/tap/tilt kubeseal trivy
 ```
+</details>
+
+<details>
+<summary>Linux (Debian/Ubuntu) installation instructions</summary>
 
 ### Linux (Debian/Ubuntu)
 
@@ -73,6 +80,10 @@ wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dear
 echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
 sudo apt-get update && sudo apt-get install -y trivy
 ```
+</details>
+
+<details>
+<summary>Linux (Fedora/RHEL) installation instructions</summary>
 
 ### Linux (Fedora/RHEL)
 
@@ -106,6 +117,10 @@ rm kubeseal-*.tar.gz
 # Trivy
 sudo rpm -ivh https://github.com/aquasecurity/trivy/releases/latest/download/trivy_$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')_Linux-64bit.rpm
 ```
+</details>
+
+<details>
+<summary>Windows (WSL2) installation instructions</summary>
 
 ### Windows (WSL2)
 
@@ -114,6 +129,7 @@ skelly-saas runs on Windows via WSL2 with Docker Desktop:
 1. Install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with a Ubuntu distribution.
 2. Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) with the WSL2 backend enabled.
 3. Open your WSL2 terminal and follow the **Linux (Debian/Ubuntu)** instructions above.
+</details>
 
 ### Verify Installation
 

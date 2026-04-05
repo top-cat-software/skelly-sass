@@ -1,0 +1,11 @@
+{{- if .Release.IsInstall }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: skelly-saas
+    # Enforce restricted Pod Security Standard (ADR-0007)
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+{{- end }}

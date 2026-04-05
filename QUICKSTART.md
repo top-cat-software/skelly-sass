@@ -16,11 +16,12 @@ You need **Docker** installed and running. All application code (PHP, Node) runs
 | **Tilt** | Live-reload and dev workflow orchestration | [docs.tilt.dev/install](https://docs.tilt.dev/install.html) |
 | **kubectl** | Kubernetes CLI | [kubernetes.io/docs/tasks/tools](https://kubernetes.io/docs/tasks/tools/) |
 | **kubeseal** | Client-side encryption for Sealed Secrets | [github.com/bitnami-labs/sealed-secrets](https://github.com/bitnami-labs/sealed-secrets#kubeseal) |
+| **Trivy** | Container image vulnerability scanning | [aquasecurity.github.io/trivy](https://aquasecurity.github.io/trivy/) |
 
 #### macOS (Homebrew)
 
 ```bash
-brew install k3d helm tilt-dev/tap/tilt kubeseal
+brew install k3d helm tilt-dev/tap/tilt kubeseal trivy
 ```
 
 kubectl is bundled with Docker Desktop. If you don't have it:
@@ -49,6 +50,12 @@ chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 KUBESEAL_VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
 curl -OL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
 tar -xvzf kubeseal-*.tar.gz kubeseal && sudo mv kubeseal /usr/local/bin/
+
+# Trivy
+sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+sudo apt-get update && sudo apt-get install -y trivy
 ```
 
 #### Windows (WSL2)
@@ -64,6 +71,7 @@ helm version
 tilt version
 kubectl version --client
 kubeseal --version
+trivy --version
 ```
 
 All commands should return version information without errors.

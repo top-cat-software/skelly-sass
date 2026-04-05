@@ -28,6 +28,7 @@ if (str_starts_with($path, '/auth')) {
 // Default: return 404 for unrouted paths.
 // In production, Traefik routes non-API/auth paths to the frontend.
 http_response_code(404);
+header('Content-Type: application/json');
 echo json_encode([
     'type' => 'https://docs.skelly-saas.dev/errors/not-found',
     'title' => 'Not Found',

@@ -34,12 +34,9 @@ final class PhpRedisConnection implements RedisConnectionInterface
         $parsed = parse_url($this->redisUrl);
         $host = $parsed['host'] ?? '127.0.0.1';
         $port = $parsed['port'] ?? 6379;
+        // parse_url puts the password in 'pass' for both redis://user:pass@host
+        // and redis://:pass@host formats.
         $password = isset($parsed['pass']) ? urldecode($parsed['pass']) : null;
-
-        // Handle redis://:password@host format (empty user, password after colon).
-        if ($password === null && isset($parsed['user']) && $parsed['user'] === '') {
-            $password = isset($parsed['pass']) ? urldecode($parsed['pass']) : null;
-        }
 
         $this->redis = new \Redis();
         $this->redis->connect($host, (int) $port, 2.0);

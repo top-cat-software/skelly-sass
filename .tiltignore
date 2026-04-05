@@ -1,0 +1,18 @@
+# Dependency directories
+node_modules/
+vendor/
+
+# VCS
+.git/
+
+# Documentation
+*.md
+docs/
+
+# Downloaded Helm dependency charts
+helm/skelly-saas/charts/*.tgz
+
+# Build artefacts
+api/var/
+frontend/build/
+frontend/.svelte-kit/

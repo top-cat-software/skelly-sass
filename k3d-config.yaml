@@ -1,0 +1,20 @@
+# k3d cluster configuration for skelly-saas local development.
+# Usage: k3d cluster create --config k3d-config.yaml
+# See ADR-0007 for architecture context.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+name: skelly-saas
+servers: 1
+agents: 1
+ports:
+  - port: 8080:80
+    nodeFilters: [loadbalancer]
+  - port: 8443:443
+    nodeFilters: [loadbalancer]
+options:
+  k3s:
+    extraArgs:
+      # Disable k3d's bundled Traefik — we deploy our own via Helm
+      # for version control and configuration consistency.
+      - arg: --disable=traefik
+        nodeFilters: [server:*]

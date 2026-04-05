@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App;
 
-use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
-use Symfony\Component\HttpKernel\Kernel as BaseKernel;
+use App\Api\ApiKernel;
 
-final class Kernel extends BaseKernel
+/**
+ * Default kernel — delegates to ApiKernel.
+ *
+ * Exists for backward compatibility with bin/console and Symfony tooling
+ * that expects an App\Kernel class.
+ */
+final class Kernel extends ApiKernel
 {
-    use MicroKernelTrait;
 }

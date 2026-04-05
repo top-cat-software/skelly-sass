@@ -1,0 +1,15 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\Auth\:
+        resource: '../../src/Auth/'
+        exclude:
+            - '../../src/Auth/AuthKernel.php'
+
+    App\Infrastructure\:
+        resource: '../../src/Infrastructure/'
+
+    App\Domain\:
+        resource: '../../src/Domain/'

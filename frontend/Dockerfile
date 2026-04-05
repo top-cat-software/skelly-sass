@@ -21,6 +21,12 @@ FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
+# Patch OS-level vulnerabilities and remove unnecessary package managers
+# from the runtime image (npm, yarn, corepack are only needed at build time).
+RUN apk update && apk upgrade --no-cache && \
+    rm -rf /opt/yarn-* /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack && \
+    rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg /usr/local/bin/corepack
+
 # Run as non-root (ADR-0007 security requirement).
 USER 1000:1000
 

@@ -1,0 +1,42 @@
+{
+    "name": "top-cat-software/skelly-saas-api",
+    "description": "skelly-saas API, Auth, and Worker application",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.4",
+        "symfony/framework-bundle": "^7.2",
+        "symfony/console": "^7.2",
+        "symfony/runtime": "^7.2",
+        "symfony/dotenv": "^7.2",
+        "symfony/yaml": "^7.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true,
+            "symfony/flex": true
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "symfony": {
+            "allow-contrib": false,
+            "require": "7.2.*"
+        }
+    },
+    "scripts": {
+        "auto-scripts": {
+            "cache:clear": "symfony-cmd"
+        }
+    }
+}

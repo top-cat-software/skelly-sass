@@ -1,0 +1,11 @@
+vendor/
+var/
+.git/
+tests/
+*.md
+docker-compose*
+.env.local
+.env.*.local
+phpunit.xml
+phpstan.neon
+psalm.xml

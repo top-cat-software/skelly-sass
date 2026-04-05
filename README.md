@@ -38,6 +38,10 @@ skelly-saas/
 └── k3d-config.yaml             # Local Kubernetes cluster configuration
 ```
 
+## Getting Started
+
+See [QUICKSTART.md](QUICKSTART.md) for prerequisites, installation, and first-run instructions.
+
 ## Architecture
 
 For detailed architectural decisions, see the [ADRs](docs/adr/README.md).

@@ -27,8 +27,9 @@ ADRs are numbered sequentially: `NNNN-short-title.md` (e.g. `0001-use-postgresql
 | [0001](0001-high-level-architecture.md) | High-Level Architecture | Accepted |
 | [0002](0002-use-postgresql.md) | Use PostgreSQL for Primary Data Store | Accepted |
 | [0003](0003-oauth2-server-with-php.md) | OAuth 2.0 Server with PHP | Accepted |
-| [0004](0004-message-streaming-with-pulsar.md) | Message Streaming with Apache Pulsar | Accepted |
+| [0004](0004-message-streaming-with-pulsar.md) | Message Streaming with Apache Pulsar | Superseded by ADR-0009 |
 | [0005](0005-svelte-frontend.md) | Svelte with Bits UI for Frontend | Accepted |
 | [0006](0006-restful-api-first.md) | RESTful API as Primary Interface | Accepted |
 | [0007](0007-container-orchestration-with-kubernetes.md) | Container Orchestration with Kubernetes and Helm | Accepted |
 | [0008](0008-use-symfony-framework.md) | Use Symfony 7 as the PHP Framework | Accepted |
+| [0009](0009-redis-streams-for-messaging.md) | Redis Streams as Default Message Transport | Accepted |

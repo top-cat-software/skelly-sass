@@ -57,8 +57,8 @@ Use **Doctrine Migrations** for versioned schema management:
 
 ### Materialised View Refresh Strategy
 
-Use **event-driven refresh triggered via Pulsar** (Symfony Messenger), not scheduled refresh:
-- When a write operation completes, the API publishes a domain event to Pulsar (e.g. `tenant.usage.updated`).
+Use **event-driven refresh triggered via Symfony Messenger** (Redis Streams transport, see ADR-0009), not scheduled refresh:
+- When a write operation completes, the API publishes a domain event via Symfony Messenger (e.g. `tenant.usage.updated`).
 - A dedicated worker subscribes to these events and calls `REFRESH MATERIALIZED VIEW CONCURRENTLY <view>`.
 - `CONCURRENTLY` is required — it allows reads during refresh (requires a unique index on the view).
 - **Debounced refresh**: the worker batches events and refreshes at most once per configurable interval (e.g. 30 seconds) to avoid excessive refresh under high write loads.
@@ -141,5 +141,5 @@ Credentials stored as Kubernetes Secrets, injected as environment variables. See
 ## Related Decisions
 
 - [ADR-0001](0001-high-level-architecture.md) — High-level architecture (PostgreSQL as data store component, trust boundaries)
-- [ADR-0004](0004-message-streaming-with-pulsar.md) — Materialised view refresh triggered via Pulsar events (Symfony Messenger)
+- [ADR-0009](0009-redis-streams-for-messaging.md) — Materialised view refresh triggered via Redis Streams (Symfony Messenger)
 - [ADR-0008](0008-use-symfony-framework.md) — Symfony 7 with Doctrine DBAL integration

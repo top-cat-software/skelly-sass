@@ -8,7 +8,7 @@
 
 The SaaS skeleton is designed as a set of independently deployable components (ADR-0001). We need:
 
-- Container orchestration for all components (API, workers, front-end, Pulsar, PostgreSQL, Mercure)
+- Container orchestration for all components (API, workers, front-end, Redis, PostgreSQL, Mercure)
 - Declarative, versioned deployment configuration
 - Service discovery and internal networking
 - Scaling policies (particularly for workers)
@@ -42,7 +42,7 @@ Use **Kubernetes with Helm** for all environments, including local development v
 
 - **Single paradigm**: one deployment model from development through production eliminates environment drift.
 - **Helm charts**: provide a clean packaging model — adopters `helm install` and get a working stack.
-- **Ecosystem**: Pulsar, PostgreSQL (Bitnami), Traefik, and Mercure all have official or well-maintained Helm charts.
+- **Ecosystem**: Redis, PostgreSQL (Bitnami), Traefik, and Mercure all have official or well-maintained Helm charts.
 - **Cloud portability**: Kubernetes runs on every major cloud provider and on-premises.
 
 ### Helm Chart Structure
@@ -50,7 +50,7 @@ Use **Kubernetes with Helm** for all environments, including local development v
 ```
 helm/
 ├── skelly-saas/                    # Umbrella chart
-│   ├── Chart.yaml                  # Dependencies: api, frontend, workers, ingress, mercure
+│   ├── Chart.yaml                  # Dependencies: api, frontend, workers, ingress, mercure, redis
 │   ├── values.yaml                 # Global defaults + per-component overrides
 │   ├── values-dev.yaml             # Development overrides (resource reductions, debug flags)
 │   ├── values-prod.yaml            # Production overrides (replicas, resource limits)
@@ -69,7 +69,7 @@ helm/
 │       ├── workers/                # PHP worker fleet
 │       ├── mercure/                # Mercure hub (SSE push)
 │       └── ingress/                # Traefik IngressRoute CRDs
-├── pulsar/                         # Referenced via Chart.yaml dependency (official chart)
+├── redis/                          # Referenced via Chart.yaml dependency (Bitnami)
 └── postgresql/                     # Referenced via Chart.yaml dependency (Bitnami)
 ```
 
@@ -120,7 +120,7 @@ k3d's bundled Traefik is disabled — the skeleton deploys its own Traefik via H
 | Workers | 250m | 500m | 256Mi | 512Mi | 1 | 3+ (HPA) |
 | Mercure Hub | 100m | 250m | 64Mi | 128Mi | 1 | 2 |
 | Traefik | 100m | 250m | 128Mi | 256Mi | 1 | 2 |
-| Pulsar (standalone) | 500m | 1000m | 1Gi | 2Gi | 1 | N/A |
+| Redis | 50m | 100m | 64Mi | 128Mi | 1 | 1 (Sentinel/Cluster) |
 | PostgreSQL | 250m | 500m | 256Mi | 512Mi | 1 | 1 (managed) |
 | PgBouncer | 50m | 100m | 32Mi | 64Mi | 1 | 2 |
 
@@ -186,12 +186,11 @@ Default-deny NetworkPolicies with explicit allow rules, **enabled by default** i
 | Source | Destination | Allowed |
 |--------|------------|---------|
 | Traefik (ingress) | API, Frontend, Mercure | ✅ |
-| API | PostgreSQL (PgBouncer), Pulsar, Mercure | ✅ |
-| Workers | PostgreSQL (PgBouncer), Pulsar | ✅ |
+| API | PostgreSQL (PgBouncer), Redis, Mercure | ✅ |
+| Workers | PostgreSQL (PgBouncer), Redis | ✅ |
 | Frontend | API (via Traefik) | ✅ |
-| Frontend | PostgreSQL, Pulsar | ❌ |
+| Frontend | PostgreSQL, Redis | ❌ |
 | Workers | Traefik | ❌ |
-| Pulsar | PostgreSQL | ❌ |
 
 This enforces the network communication matrix defined in ADR-0001.
 
@@ -232,7 +231,7 @@ All pods run as non-root, with no privilege escalation, no host networking, and 
 Included as an optional Helm chart dependency (disabled by default, enabled via `monitoring.enabled: true`):
 
 - **Prometheus** (via kube-prometheus-stack) for metrics
-- **Grafana** for dashboards — includes pre-built dashboards for API latency, worker throughput, Pulsar metrics
+- **Grafana** for dashboards — includes pre-built dashboards for API latency, worker throughput, Redis metrics
 - **Loki** for log aggregation
 
 ### Developer Experience: Makefile
@@ -261,11 +260,11 @@ scan-images:          ## Scan Docker images for vulnerabilities
 - Umbrella chart allows full-stack or per-component deployment
 - Tilt provides fast live-reload for development
 - Sealed Secrets provide git-based secret management without external dependencies
-- External dependencies (Pulsar, PostgreSQL) managed via official charts
+- External dependencies (Redis, PostgreSQL) managed via official Bitnami charts
 
 ### Negative
 - Kubernetes learning curve is steep for teams without prior experience
-- Local development requires running a Kubernetes cluster (~8 GB RAM minimum)
+- Local development requires running a Kubernetes cluster (~4 GB RAM minimum)
 - Helm template debugging can be frustrating
 - NetworkPolicies and RBAC add Helm template complexity
 
@@ -278,6 +277,6 @@ scan-images:          ## Scan Docker images for vulnerabilities
 ## Related Decisions
 
 - [ADR-0001](0001-high-level-architecture.md) — Component topology, trust boundaries, network communication matrix
-- [ADR-0004](0004-message-streaming-with-pulsar.md) — Pulsar Helm chart as a dependency, standalone/cluster profiles
+- [ADR-0009](0009-redis-streams-for-messaging.md) — Redis Helm chart as a dependency (replaces Pulsar)
 - [ADR-0005](0005-svelte-frontend.md) — Frontend Docker image (adapter-node, multi-stage build)
 - [ADR-0008](0008-use-symfony-framework.md) — Mercure hub added to chart, Symfony container builds

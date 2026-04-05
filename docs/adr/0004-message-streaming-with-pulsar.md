@@ -1,7 +1,7 @@
 # ADR-0004: Message Streaming with Apache Pulsar
 
 **Date**: 2026-04-04
-**Status**: Accepted
+**Status**: Superseded by [ADR-0009](0009-redis-streams-for-messaging.md)
 **Deciders**: Project Architect (IC7), Project Owner, Principal Infrastructure (IC6), Principal PHP (IC6)
 
 ## Context

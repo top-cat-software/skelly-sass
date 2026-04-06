@@ -19,5 +19,9 @@ services:
         arguments:
             $redisUrl: '%env(REDIS_URL)%'
 
+    App\Infrastructure\Health\HealthChecker:
+        arguments:
+            $messengerTransportDsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+
     App\Infrastructure\Health\HealthCheckerInterface:
         alias: App\Infrastructure\Health\HealthChecker

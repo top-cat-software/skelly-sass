@@ -15,6 +15,7 @@ final class HealthChecker implements HealthCheckerInterface
     public function __construct(
         private readonly Connection $connection,
         private readonly RedisConnectionInterface $redis,
+        private readonly string $messengerTransportDsn = '',
     ) {}
 
     /**
@@ -35,6 +36,7 @@ final class HealthChecker implements HealthCheckerInterface
         $checks = [
             'database' => $this->checkDatabase(),
             'redis' => $this->checkRedis(),
+            'messenger' => $this->checkMessenger(),
         ];
 
         $overallHealthy = true;
@@ -81,6 +83,44 @@ final class HealthChecker implements HealthCheckerInterface
      */
     private function checkRedis(): array
     {
+        $start = hrtime(true);
+
+        try {
+            $this->redis->ping();
+            $elapsed = (hrtime(true) - $start) / 1_000_000;
+
+            return [
+                'status' => 'healthy',
+                'response_time_ms' => round($elapsed, 2),
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status' => 'unhealthy',
+                'response_time_ms' => null,
+                'error' => self::sanitiseError($e),
+            ];
+        }
+    }
+
+    /**
+     * Checks that the Messenger transport DSN is configured and the underlying
+     * Redis connection is reachable. Uses the same Redis connection as the
+     * redis check — Messenger uses Redis Streams on the same instance.
+     *
+     * @return array{status: 'healthy'|'unhealthy', response_time_ms: float|null, error?: string}
+     */
+    private function checkMessenger(): array
+    {
+        if ($this->messengerTransportDsn === '') {
+            return [
+                'status' => 'unhealthy',
+                'response_time_ms' => null,
+                'error' => 'Transport DSN not configured',
+            ];
+        }
+
+        // The messenger transport uses the same Redis instance.
+        // If Redis is reachable, the transport is available.
         $start = hrtime(true);
 
         try {

@@ -37,6 +37,7 @@ endif
         status shell-api shell-frontend \
         db-migrate db-reset seed \
         seal-secret rotate-sealed-key \
+        smoke-test \
         scan-images
 
 # ─── Help ────────────────────────────────────────────────────────────────────
@@ -174,3 +175,9 @@ scan-images: ## Run Trivy vulnerability scan on Docker images
 	@echo ""
 	@printf "$(INFO) Scanning $(FRONTEND_IMAGE)...\n"
 	trivy image --severity HIGH,CRITICAL $(FRONTEND_IMAGE)
+
+# ─── Smoke Test ─────────────────────────────────────────────────────────────
+
+smoke-test: ## Run end-to-end smoke tests against the running cluster
+	@printf "$(INFO) Running smoke tests...\n"
+	NAMESPACE=$(NAMESPACE) ./scripts/smoke-test.sh

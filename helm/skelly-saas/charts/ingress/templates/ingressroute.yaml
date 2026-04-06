@@ -1,31 +1,72 @@
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: {{ .Release.Name }}-api
-  labels:
-    app.kubernetes.io/part-of: skelly-saas
-spec:
-  entryPoints:
-    - web
-  routes:
-    - match: Host(`{{ .Values.global.ingress.apiHost | default "api.localhost" }}`)
-      kind: Rule
-      services:
-        - name: {{ .Release.Name }}-api
-          port: {{ .Values.global.api.port | default 8080 }}
+{{- $apiHost := .Values.global.ingress.apiHost | default "api.localhost" -}}
+{{- $appHost := .Values.global.ingress.appHost | default "app.localhost" -}}
+{{- $apiPrefix := .Values.global.ingress.apiPathPrefix | default "/api" -}}
+{{- $authPrefix := .Values.global.ingress.authPathPrefix | default "/auth" -}}
+{{- $apiPort := .Values.global.api.port | default 8080 -}}
+{{- $frontendPort := .Values.global.frontend.port | default 3000 -}}
+# Route /api/* and /auth/* to the API service (handles both kernels).
+# All other paths go to the SvelteKit frontend.
+# Applied to both api.localhost and app.localhost so the frontend SSR
+# can call the API without CORS issues.
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: {{ .Release.Name }}-frontend
+  name: {{ .Release.Name }}-api-routes
   labels:
     app.kubernetes.io/part-of: skelly-saas
 spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`{{ .Values.global.ingress.appHost | default "app.localhost" }}`)
+    # API paths — higher priority so they match before the catch-all
+    - match: Host(`{{ $apiHost }}`) && PathPrefix(`{{ $apiPrefix }}`)
       kind: Rule
+      priority: 200
+      services:
+        - name: {{ .Release.Name }}-api
+          port: {{ $apiPort }}
+    - match: Host(`{{ $apiHost }}`) && PathPrefix(`{{ $authPrefix }}`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: {{ .Release.Name }}-api
+          port: {{ $apiPort }}
+    # Catch-all for api.localhost → frontend
+    - match: Host(`{{ $apiHost }}`)
+      kind: Rule
+      priority: 100
       services:
         - name: {{ .Release.Name }}-frontend
-          port: {{ .Values.global.frontend.port | default 3000 }}
+          port: {{ $frontendPort }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-app-routes
+  labels:
+    app.kubernetes.io/part-of: skelly-saas
+spec:
+  entryPoints:
+    - web
+  routes:
+    # API paths — higher priority so they match before the catch-all
+    - match: Host(`{{ $appHost }}`) && PathPrefix(`{{ $apiPrefix }}`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: {{ .Release.Name }}-api
+          port: {{ $apiPort }}
+    - match: Host(`{{ $appHost }}`) && PathPrefix(`{{ $authPrefix }}`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: {{ .Release.Name }}-api
+          port: {{ $apiPort }}
+    # Catch-all for app.localhost → frontend
+    - match: Host(`{{ $appHost }}`)
+      kind: Rule
+      priority: 100
+      services:
+        - name: {{ .Release.Name }}-frontend
+          port: {{ $frontendPort }}

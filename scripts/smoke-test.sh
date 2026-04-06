@@ -15,6 +15,14 @@
 
 set -euo pipefail
 
+# Check required tools
+for tool in curl jq kubectl; do
+    command -v "$tool" >/dev/null 2>&1 || {
+        printf '\033[1;31m[ERROR]\033[0m %s is required but not installed.\n' "$tool"
+        exit 1
+    }
+done
+
 NAMESPACE="${NAMESPACE:-skelly-saas}"
 TIMEOUT="${TIMEOUT:-120}"
 API_HOST="${API_HOST:-api.localhost:8080}"

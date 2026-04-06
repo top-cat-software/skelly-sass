@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-pgbouncer-config
+  labels:
+    app.kubernetes.io/name: pgbouncer
+    app.kubernetes.io/part-of: skelly-saas
+data:
+  pgbouncer.ini: |
+    [databases]
+    {{ .Values.global.postgresql.auth.database }} = host={{ .Release.Name }}-postgresql port=5432 dbname={{ .Values.global.postgresql.auth.database }}
+
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = 6432
+    auth_type = md5
+    auth_file = /etc/pgbouncer/userlist.txt
+    pool_mode = transaction
+    max_client_conn = 100
+    default_pool_size = 20
+    min_pool_size = 5
+    reserve_pool_size = 5
+    reserve_pool_timeout = 3
+    server_lifetime = 3600
+    server_idle_timeout = 600
+    log_connections = 1
+    log_disconnections = 1
+    stats_period = 60
+    admin_users = pgbouncer
+  userlist.txt: |
+    "{{ .Values.global.postgresql.auth.username }}" "{{ .Values.global.postgresql.auth.password }}"

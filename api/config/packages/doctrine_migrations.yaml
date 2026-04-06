@@ -1,0 +1,10 @@
+doctrine_migrations:
+    migrations_paths:
+        'App\Infrastructure\Database\Migration': 'src/Infrastructure/Database/Migration'
+    storage:
+        table_storage:
+            table_name: doctrine_migration_versions
+    organize_migrations: false
+    all_or_nothing: true
+    transactional: true
+    enable_profiler: false

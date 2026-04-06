@@ -22,7 +22,7 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willReturn(true);
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         self::assertSame('healthy', $result['status']);
@@ -40,7 +40,7 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willReturn(true);
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         self::assertSame('healthy', $result['checks']['redis']['status']);
@@ -59,7 +59,7 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willReturn(true);
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         self::assertSame('unhealthy', $result['status']);
@@ -77,7 +77,7 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willThrowException(new \RuntimeException('Connection refused'));
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         self::assertSame('unhealthy', $result['status']);
@@ -95,7 +95,7 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willReturn(true);
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         self::assertArrayHasKey('timestamp', $result);
@@ -114,12 +114,65 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willReturn(true);
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         self::assertSame('unhealthy', $result['status']);
         self::assertSame('healthy', $result['checks']['redis']['status']);
         self::assertSame('unhealthy', $result['checks']['database']['status']);
+    }
+
+    #[Test]
+    public function it_returns_healthy_messenger_when_dsn_configured_and_redis_reachable(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeQuery')->willReturn($this->createMock(Result::class));
+
+        $redis = $this->createMock(RedisConnectionInterface::class);
+        $redis->method('ping')->willReturn(true);
+
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
+        $result = $checker->check();
+
+        self::assertSame('healthy', $result['checks']['messenger']['status']);
+        self::assertIsFloat($result['checks']['messenger']['response_time_ms']);
+        self::assertArrayNotHasKey('error', $result['checks']['messenger']);
+    }
+
+    #[Test]
+    public function it_returns_unhealthy_messenger_when_dsn_is_empty(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeQuery')->willReturn($this->createMock(Result::class));
+
+        $redis = $this->createMock(RedisConnectionInterface::class);
+        $redis->method('ping')->willReturn(true);
+
+        $checker = new HealthChecker($connection, $redis, '');
+        $result = $checker->check();
+
+        self::assertSame('unhealthy', $result['status']);
+        self::assertSame('unhealthy', $result['checks']['messenger']['status']);
+        self::assertNull($result['checks']['messenger']['response_time_ms']);
+        self::assertSame('Transport DSN not configured', $result['checks']['messenger']['error']);
+    }
+
+    #[Test]
+    public function it_returns_unhealthy_messenger_when_redis_is_unreachable(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeQuery')->willReturn($this->createMock(Result::class));
+
+        $redis = $this->createMock(RedisConnectionInterface::class);
+        $redis->method('ping')->willThrowException(new \RuntimeException('Connection refused'));
+
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
+        $result = $checker->check();
+
+        self::assertSame('unhealthy', $result['status']);
+        self::assertSame('unhealthy', $result['checks']['messenger']['status']);
+        self::assertNull($result['checks']['messenger']['response_time_ms']);
+        self::assertArrayHasKey('error', $result['checks']['messenger']);
     }
 
     #[Test]
@@ -133,7 +186,7 @@ final class HealthCheckerTest extends TestCase
         $redis = $this->createMock(RedisConnectionInterface::class);
         $redis->method('ping')->willReturn(true);
 
-        $checker = new HealthChecker($connection, $redis);
+        $checker = new HealthChecker($connection, $redis, 'redis://localhost:6379/messages');
         $result = $checker->check();
 
         // Must not contain IP addresses or usernames from raw exception messages.

@@ -1,0 +1,14 @@
+framework:
+    messenger:
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 60000
+            failed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%/failed'
+
+        failure_transport: failed

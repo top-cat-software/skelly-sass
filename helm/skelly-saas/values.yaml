@@ -63,6 +63,8 @@ global:
   ingress:
     apiHost: api.localhost
     appHost: app.localhost
+    apiPathPrefix: /api
+    authPathPrefix: /auth
 
   # -- Shared credentials (also consumed by Bitnami sub-charts via global.*)
   postgresql:

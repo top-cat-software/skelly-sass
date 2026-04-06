@@ -48,7 +48,7 @@ spec:
             - name: APP_SECRET
               value: "skeleton-dev-secret-change-in-production"
             - name: DATABASE_URL
-              value: "postgresql://{{ .Values.global.postgresql.auth.username }}:{{ .Values.global.postgresql.auth.password }}@{{ .Release.Name }}-postgresql:5432/{{ .Values.global.postgresql.auth.database }}?serverVersion=16&charset=utf8"
+              value: "postgresql://{{ .Values.global.postgresql.auth.username }}:{{ .Values.global.postgresql.auth.password }}@{{ .Release.Name }}-pgbouncer:6432/{{ .Values.global.postgresql.auth.database }}?serverVersion=16&charset=utf8"
             - name: REDIS_URL
               value: "redis://:{{ .Values.global.redis.auth.password }}@{{ .Release.Name }}-redis-master:6379"
             - name: MESSENGER_TRANSPORT_DSN

@@ -126,13 +126,21 @@ shell-api: ## Open a shell in the API pod
 shell-frontend: ## Open a shell in the frontend pod
 	kubectl exec -it -n $(NAMESPACE) deploy/$(HELM_RELEASE)-frontend -- /bin/sh
 
-# ─── Database (placeholders) ─────────────────────────────────────────────────
+# ─── Database ────────────────────────────────────────────────────────────────
 
-db-migrate: ## Run database migrations (placeholder)
-	@printf "$(WARN) Not yet implemented. Will run: php bin/console doctrine:migrations:migrate\n"
+API_POD = $$(kubectl get pod -n $(NAMESPACE) -l app.kubernetes.io/name=api -o jsonpath='{.items[0].metadata.name}')
 
-db-reset: ## Drop and recreate the database with seed data (placeholder)
-	@printf "$(WARN) Not yet implemented. Will run: drop + migrate + seed\n"
+db-migrate: ## Run database migrations in the API pod
+	@printf "$(INFO) Running database migrations...\n"
+	kubectl exec -n $(NAMESPACE) $(API_POD) -- php bin/console doctrine:migrations:migrate --no-interaction
+	@printf "$(OK) Migrations complete.\n"
+
+db-reset: ## Drop and recreate the database, then run migrations
+	@printf "$(WARN) This will destroy all data in the database.\n"
+	kubectl exec -n $(NAMESPACE) $(API_POD) -- php bin/console doctrine:database:drop --force --if-exists
+	kubectl exec -n $(NAMESPACE) $(API_POD) -- php bin/console doctrine:database:create
+	kubectl exec -n $(NAMESPACE) $(API_POD) -- php bin/console doctrine:migrations:migrate --no-interaction
+	@printf "$(OK) Database reset and migrations complete.\n"
 
 seed: ## Seed development data (placeholder)
 	@printf "$(WARN) Not yet implemented. Will run: php bin/console app:seed\n"

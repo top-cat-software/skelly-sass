@@ -7,7 +7,6 @@ namespace App\FrankenPhp;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * Routes incoming requests to the appropriate kernel based on URI prefix.
@@ -27,8 +26,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 final class FrontControllerRouter
 {
     public function __construct(
-        private readonly HttpKernelInterface $apiKernel,
-        private readonly HttpKernelInterface $authKernel,
+        private readonly KernelRegistry $kernelRegistry,
     ) {}
 
     public function dispatch(Request $request): Response
@@ -36,11 +34,11 @@ final class FrontControllerRouter
         $path = $request->getPathInfo();
 
         if (str_starts_with($path, '/api/')) {
-            return $this->apiKernel->handle($request);
+            return $this->kernelRegistry->getApiKernel()->handle($request);
         }
 
         if (str_starts_with($path, '/auth/')) {
-            return $this->authKernel->handle($request);
+            return $this->kernelRegistry->getAuthKernel()->handle($request);
         }
 
         return $this->buildNotFoundResponse($path);
@@ -54,6 +52,8 @@ final class FrontControllerRouter
      */
     private function buildNotFoundResponse(string $path): JsonResponse
     {
+        // The path is user-supplied. Reflected as-is; acceptable for a JSON
+        // problem response (not HTML), but avoid in any HTML error page.
         return new JsonResponse(
             data: [
                 'type'   => 'about:blank',

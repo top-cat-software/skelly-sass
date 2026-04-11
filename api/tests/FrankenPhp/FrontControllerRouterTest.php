@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\FrankenPhp;
 
 use App\FrankenPhp\FrontControllerRouter;
-use App\Api\ApiKernel;
-use App\Auth\AuthKernel;
+use App\FrankenPhp\KernelRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -46,7 +45,11 @@ final class FrontControllerRouterTest extends TestCase
             ->expects(self::never())
             ->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $router->dispatch($request);
     }
 
@@ -66,7 +69,11 @@ final class FrontControllerRouterTest extends TestCase
 
         $authKernel->expects(self::never())->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $router->dispatch($request);
     }
 
@@ -86,7 +93,11 @@ final class FrontControllerRouterTest extends TestCase
 
         $apiKernel->expects(self::never())->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $router->dispatch($request);
     }
 
@@ -106,7 +117,11 @@ final class FrontControllerRouterTest extends TestCase
 
         $apiKernel->expects(self::never())->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $router->dispatch($request);
     }
 
@@ -119,7 +134,11 @@ final class FrontControllerRouterTest extends TestCase
         $expectedResponse = new Response('{"data":"value"}', 200, ['Content-Type' => 'application/json']);
         $apiKernel->method('handle')->willReturn($expectedResponse);
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $response = $router->dispatch(Request::create('/api/v1/resource'));
 
         self::assertSame($expectedResponse, $response);
@@ -134,7 +153,11 @@ final class FrontControllerRouterTest extends TestCase
         $expectedResponse = new Response('{"access_token":"tok"}', 200, ['Content-Type' => 'application/json']);
         $authKernel->method('handle')->willReturn($expectedResponse);
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $response = $router->dispatch(Request::create('/auth/token'));
 
         self::assertSame($expectedResponse, $response);
@@ -154,7 +177,11 @@ final class FrontControllerRouterTest extends TestCase
         $apiKernel->expects(self::never())->method('handle');
         $authKernel->expects(self::never())->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $response = $router->dispatch(Request::create($path));
 
         self::assertSame(404, $response->getStatusCode());
@@ -181,11 +208,7 @@ final class FrontControllerRouterTest extends TestCase
     #[Test]
     public function unmatched_path_response_has_application_problem_json_content_type(): void
     {
-        $router = new FrontControllerRouter(
-            $this->createMock(HttpKernelInterface::class),
-            $this->createMock(HttpKernelInterface::class),
-        );
-
+        $router   = $this->buildRouterWithStubKernels();
         $response = $router->dispatch(Request::create('/not-found'));
 
         self::assertSame('application/problem+json', $response->headers->get('Content-Type'));
@@ -194,11 +217,7 @@ final class FrontControllerRouterTest extends TestCase
     #[Test]
     public function unmatched_path_response_body_contains_required_rfc7807_fields(): void
     {
-        $router = new FrontControllerRouter(
-            $this->createMock(HttpKernelInterface::class),
-            $this->createMock(HttpKernelInterface::class),
-        );
-
+        $router   = $this->buildRouterWithStubKernels();
         $response = $router->dispatch(Request::create('/not-found'));
         $body     = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -211,11 +230,7 @@ final class FrontControllerRouterTest extends TestCase
     #[Test]
     public function unmatched_path_response_body_status_field_matches_http_status(): void
     {
-        $router = new FrontControllerRouter(
-            $this->createMock(HttpKernelInterface::class),
-            $this->createMock(HttpKernelInterface::class),
-        );
-
+        $router   = $this->buildRouterWithStubKernels();
         $response = $router->dispatch(Request::create('/not-found'));
         $body     = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -225,11 +240,7 @@ final class FrontControllerRouterTest extends TestCase
     #[Test]
     public function unmatched_path_response_body_title_is_not_found(): void
     {
-        $router = new FrontControllerRouter(
-            $this->createMock(HttpKernelInterface::class),
-            $this->createMock(HttpKernelInterface::class),
-        );
-
+        $router   = $this->buildRouterWithStubKernels();
         $response = $router->dispatch(Request::create('/not-found'));
         $body     = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -239,11 +250,7 @@ final class FrontControllerRouterTest extends TestCase
     #[Test]
     public function unmatched_path_response_body_type_is_a_uri(): void
     {
-        $router = new FrontControllerRouter(
-            $this->createMock(HttpKernelInterface::class),
-            $this->createMock(HttpKernelInterface::class),
-        );
-
+        $router   = $this->buildRouterWithStubKernels();
         $response = $router->dispatch(Request::create('/not-found'));
         $body     = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -256,11 +263,7 @@ final class FrontControllerRouterTest extends TestCase
     #[Test]
     public function unmatched_path_response_body_detail_is_non_empty_string(): void
     {
-        $router = new FrontControllerRouter(
-            $this->createMock(HttpKernelInterface::class),
-            $this->createMock(HttpKernelInterface::class),
-        );
-
+        $router   = $this->buildRouterWithStubKernels();
         $response = $router->dispatch(Request::create('/not-found'));
         $body     = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -283,7 +286,11 @@ final class FrontControllerRouterTest extends TestCase
         $apiKernel->expects(self::never())->method('handle');
         $authKernel->expects(self::never())->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $response = $router->dispatch(Request::create('/api'));
 
         self::assertSame(404, $response->getStatusCode());
@@ -298,9 +305,43 @@ final class FrontControllerRouterTest extends TestCase
         $apiKernel->expects(self::never())->method('handle');
         $authKernel->expects(self::never())->method('handle');
 
-        $router = new FrontControllerRouter($apiKernel, $authKernel);
+        $registry = new KernelRegistry(
+            static fn () => $apiKernel,
+            static fn () => $authKernel,
+        );
+        $router = new FrontControllerRouter($registry);
         $response = $router->dispatch(Request::create('/auth'));
 
         self::assertSame(404, $response->getStatusCode());
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * Builds a router pre-wired with no-op stub kernels.
+     *
+     * Used by tests that exercise the router's own 404 logic and do not need
+     * to assert anything about kernel invocation.
+     */
+    private function buildRouterWithStubKernels(): FrontControllerRouter
+    {
+        $registry = new KernelRegistry(
+            static fn () => new class implements HttpKernelInterface {
+                public function handle(Request $request, int $type = self::MAIN_REQUEST, bool $catch = true): Response
+                {
+                    return new Response();
+                }
+            },
+            static fn () => new class implements HttpKernelInterface {
+                public function handle(Request $request, int $type = self::MAIN_REQUEST, bool $catch = true): Response
+                {
+                    return new Response();
+                }
+            },
+        );
+
+        return new FrontControllerRouter($registry);
     }
 }

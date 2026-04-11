@@ -24,12 +24,12 @@ final class KernelRegistry
     private ?HttpKernelInterface $authKernel = null;
 
     /**
-     * @param callable(): HttpKernelInterface $apiKernelFactory
-     * @param callable(): HttpKernelInterface $authKernelFactory
+     * @param \Closure(): HttpKernelInterface $apiKernelFactory
+     * @param \Closure(): HttpKernelInterface $authKernelFactory
      */
     public function __construct(
-        private readonly mixed $apiKernelFactory,
-        private readonly mixed $authKernelFactory,
+        private readonly \Closure $apiKernelFactory,
+        private readonly \Closure $authKernelFactory,
     ) {}
 
     /**

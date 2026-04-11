@@ -47,10 +47,7 @@ return function (Request $request, array $context): Response {
             authKernelFactory: static fn (): AuthKernel => new AuthKernel($env, $debug),
         );
 
-        $router = new FrontControllerRouter(
-            $registry->getApiKernel(),
-            $registry->getAuthKernel(),
-        );
+        $router = new FrontControllerRouter($registry);
     }
 
     return $router->dispatch($request);

@@ -53,15 +53,15 @@ spec:
             - name: MESSENGER_TRANSPORT_DSN
               value: "redis://:{{ .Values.global.redis.auth.password }}@{{ .Release.Name }}-redis-master:6379/messages"
             - name: MERCURE_PUBLISHER_JWT_KEY
-              value: "skeleton-dev-mercure-key-change-in-production"
+              value: {{ .Values.global.api.mercure.publisherJwtKey | quote }}
             - name: MERCURE_PUBLISHER_JWT_ALG
-              value: "HS256"
+              value: {{ .Values.global.api.mercure.publisherJwtAlg | quote }}
             - name: MERCURE_SUBSCRIBER_JWT_KEY
-              value: "skeleton-dev-mercure-key-change-in-production"
+              value: {{ .Values.global.api.mercure.subscriberJwtKey | quote }}
             - name: MERCURE_SUBSCRIBER_JWT_ALG
-              value: "HS256"
+              value: {{ .Values.global.api.mercure.subscriberJwtAlg | quote }}
             - name: MERCURE_TRANSPORT_URL
-              value: "bolt:///data/mercure/mercure.db"
+              value: {{ .Values.global.api.mercure.transportUrl | quote }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

@@ -24,6 +24,12 @@ global:
       limits:
         cpu: 500m
         memory: 512Mi
+    mercure:
+      publisherJwtKey: "skeleton-dev-mercure-publisher-key-change-in-production"
+      publisherJwtAlg: "HS256"
+      subscriberJwtKey: "skeleton-dev-mercure-subscriber-key-change-in-production"
+      subscriberJwtAlg: "HS256"
+      transportUrl: "bolt:///data/mercure/mercure.db"
 
   # -- SvelteKit frontend
   frontend:

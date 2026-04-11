@@ -6,7 +6,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Stage: base — FrankenPHP runtime with all required extensions
 # ──────────────────────────────────────────────────────────────────────────────
-FROM dunglas/frankenphp:latest-php8.4 AS base
+FROM dunglas/frankenphp:1.12-php8.4 AS base
 
 # Install PHP extensions not bundled in the FrankenPHP base image.
 # pdo_pgsql — PostgreSQL driver for Doctrine
@@ -24,7 +24,7 @@ RUN install-php-extensions \
     zip
 
 # Copy Composer from the official image.
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 

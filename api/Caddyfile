@@ -14,7 +14,7 @@
 
 	frankenphp {
 		worker {
-			file ./public/index.php
+			file /app/public/index.php
 			env APP_RUNTIME Runtime\FrankenPhpSymfony\Runtime
 		}
 	}
@@ -25,6 +25,8 @@
 	encode zstd br gzip
 
 	mercure {
+		anonymous false
+		cors_origins http://app.localhost:8080
 		transport_url {$MERCURE_TRANSPORT_URL:bolt:///data/mercure/mercure.db}
 		publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY} {env.MERCURE_PUBLISHER_JWT_ALG}
 		subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY} {env.MERCURE_SUBSCRIBER_JWT_ALG}

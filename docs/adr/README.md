@@ -33,3 +33,4 @@ ADRs are numbered sequentially: `NNNN-short-title.md` (e.g. `0001-use-postgresql
 | [0007](0007-container-orchestration-with-kubernetes.md) | Container Orchestration with Kubernetes and Helm | Accepted |
 | [0008](0008-use-symfony-framework.md) | Use Symfony 7 as the PHP Framework | Accepted |
 | [0009](0009-redis-streams-for-messaging.md) | Redis Streams as Default Message Transport | Accepted |
+| [0010](0010-use-frankenphp.md) | Use FrankenPHP as PHP Application Server | Accepted |

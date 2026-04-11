@@ -3,35 +3,55 @@
 declare(strict_types=1);
 
 /**
- * Front controller router — dispatches to the correct Symfony kernel
- * based on the request URI prefix.
+ * FrankenPHP Worker-Mode Front Controller.
  *
- * /api/*  → ApiKernel  (api.php)
- * /auth/* → AuthKernel (auth.php)
+ * This is the sole entry point for HTTP requests under FrankenPHP worker mode.
+ * The worker loop (managed by the FrankenPHP runtime) calls this closure once
+ * per request, with the Symfony kernel kept in memory between requests. This
+ * eliminates per-request bootstrap overhead.
  *
- * Used by PHP's built-in server and as the default entry point.
+ * When APP_RUNTIME is not set (e.g., during tests or when using PHP's built-in
+ * server), the runtime/frankenphp-symfony package falls back to the standard
+ * Symfony Runtime behaviour, so this file is backward-compatible.
+ *
+ * Multi-kernel architecture:
+ *   /api/*  → ApiKernel  (separate DI container, cache in var/cache/api/)
+ *   /auth/* → AuthKernel (separate DI container, cache in var/cache/auth/)
+ *
+ * Each kernel has its own services_resetter, so kernel.reset only resets the
+ * services belonging to the kernel that handled the request. Shared services
+ * from Domain\ and Infrastructure\ namespaces get separate instances per
+ * kernel. Any shared service with mutable state MUST implement ResetInterface.
+ *
+ * @see docs/adr/0010-use-frankenphp.md
  */
 
-$uri = $_SERVER['REQUEST_URI'] ?? '/';
-$path = parse_url($uri, PHP_URL_PATH) ?? '/';
+use App\Api\ApiKernel;
+use App\Auth\AuthKernel;
+use App\FrankenPhp\FrontControllerRouter;
+use App\FrankenPhp\KernelRegistry;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
-if (str_starts_with($path, '/api')) {
-    require __DIR__ . '/api.php';
-    return;
-}
+require_once dirname(__DIR__) . '/vendor/autoload_runtime.php';
 
-if (str_starts_with($path, '/auth')) {
-    require __DIR__ . '/auth.php';
-    return;
-}
+return function (Request $request, array $context): Response {
+    static $router = null;
 
-// Default: return 404 for unrouted paths.
-// In production, Traefik routes non-API/auth paths to the frontend.
-http_response_code(404);
-header('Content-Type: application/json');
-echo json_encode([
-    'type' => 'https://docs.skelly-saas.dev/errors/not-found',
-    'title' => 'Not Found',
-    'status' => 404,
-    'detail' => 'No application handles this path. API routes start with /api, auth routes start with /auth.',
-]);
+    if ($router === null) {
+        $env   = $context['APP_ENV'];
+        $debug = (bool) $context['APP_DEBUG'];
+
+        $registry = new KernelRegistry(
+            apiKernelFactory: static fn (): ApiKernel => new ApiKernel($env, $debug),
+            authKernelFactory: static fn (): AuthKernel => new AuthKernel($env, $debug),
+        );
+
+        $router = new FrontControllerRouter(
+            $registry->getApiKernel(),
+            $registry->getAuthKernel(),
+        );
+    }
+
+    return $router->dispatch($request);
+};

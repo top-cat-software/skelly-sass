@@ -18,6 +18,8 @@ services:
         class: App\Infrastructure\Health\PhpRedisConnection
         arguments:
             $redisUrl: '%env(REDIS_URL)%'
+        tags:
+            - { name: kernel.reset, method: reset }
 
     App\Infrastructure\Health\HealthChecker:
         arguments:

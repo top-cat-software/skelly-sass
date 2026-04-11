@@ -1,20 +1,25 @@
 # Multi-stage Dockerfile for the PHP application (API, Auth, Workers).
 # Same image, different entry points per component.
-# See ADR-0007 for Docker image strategy, ADR-0008 for Symfony framework context.
+# See ADR-0007 for Docker image strategy, ADR-0008 for Symfony framework context,
+# ADR-0010 for FrankenPHP decision.
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Stage: base — PHP runtime with all required extensions
+# Stage: base — FrankenPHP runtime with all required extensions
 # ──────────────────────────────────────────────────────────────────────────────
-FROM php:8.4-cli-alpine AS base
+FROM dunglas/frankenphp:latest-php8.4 AS base
 
-# Install system dependencies and PHP extensions.
-# Uses install-php-extensions for reliable Alpine builds.
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+# Install PHP extensions not bundled in the FrankenPHP base image.
+# pdo_pgsql — PostgreSQL driver for Doctrine
+# pcntl     — signal handling for Symfony Messenger workers
+# intl      — internationalisation (ICU) for Symfony validators/formatters
+# opcache   — bytecode cache for production performance
+# redis     — phpredis for Symfony Cache/Messenger Redis transport
+# zip       — ZIP archive support for Composer and file handling
 RUN install-php-extensions \
     pdo_pgsql \
     pcntl \
-    opcache \
     intl \
+    opcache \
     redis \
     zip
 
@@ -51,11 +56,15 @@ RUN php bin/console cache:warmup --env=prod
 # ──────────────────────────────────────────────────────────────────────────────
 FROM base AS runtime
 
+# Copy the Caddyfile into the standard Caddy config location.
+COPY Caddyfile /etc/caddy/Caddyfile
+
 # Run as non-root (ADR-0007 security requirement).
+# FrankenPHP can bind to unprivileged ports (>1024) without CAP_NET_BIND_SERVICE.
 USER 1000:1000
 
 COPY --from=build --chown=1000:1000 /app /app
 
 EXPOSE 8080
 
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]

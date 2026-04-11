@@ -1,0 +1,34 @@
+# Caddyfile for the FrankenPHP application server.
+# See ADR-0010 for the FrankenPHP decision.
+#
+# Key design choices:
+#   - auto_https off: Traefik handles TLS termination at the ingress layer.
+#   - admin off: the Caddy admin API is not needed inside Kubernetes pods.
+#   - Worker mode: keeps the Symfony kernel in memory across requests.
+#   - Mercure hub: embedded, ready for future use (Epic 12 scope excludes Mercure).
+
+{
+	auto_https off
+	admin off
+	skip_install_trust
+
+	frankenphp {
+		worker {
+			file ./public/index.php
+			env APP_RUNTIME Runtime\FrankenPhpSymfony\Runtime
+		}
+	}
+}
+
+:8080 {
+	root * /app/public
+	encode zstd br gzip
+
+	mercure {
+		transport_url {$MERCURE_TRANSPORT_URL:bolt:///data/mercure/mercure.db}
+		publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY} {env.MERCURE_PUBLISHER_JWT_ALG}
+		subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY} {env.MERCURE_SUBSCRIBER_JWT_ALG}
+	}
+
+	php_server
+}

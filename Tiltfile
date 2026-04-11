@@ -8,6 +8,9 @@ allow_k8s_contexts('k3d-skelly-saas')
 # ─── Docker Builds with Live-Sync ───
 
 # API image (also used by workers)
+# FrankenPHP worker mode keeps PHP processes alive, so file changes synced via
+# Tilt are not picked up automatically. SIGUSR1 tells FrankenPHP to restart its
+# worker processes, picking up the newly synced PHP files.
 docker_build(
     'skelly-saas/api',
     context='./api',
@@ -17,6 +20,7 @@ docker_build(
         sync('./api/config', '/app/config'),
         sync('./api/templates', '/app/templates'),
         run('php bin/console cache:clear', trigger=['./api/config']),
+        run('kill -USR1 1', trigger=['./api/src']),
     ],
 )
 

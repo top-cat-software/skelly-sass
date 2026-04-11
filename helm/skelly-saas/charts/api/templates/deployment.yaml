@@ -52,6 +52,16 @@ spec:
               value: "redis://:{{ .Values.global.redis.auth.password }}@{{ .Release.Name }}-redis-master:6379"
             - name: MESSENGER_TRANSPORT_DSN
               value: "redis://:{{ .Values.global.redis.auth.password }}@{{ .Release.Name }}-redis-master:6379/messages"
+            - name: MERCURE_PUBLISHER_JWT_KEY
+              value: "skeleton-dev-mercure-key-change-in-production"
+            - name: MERCURE_PUBLISHER_JWT_ALG
+              value: "HS256"
+            - name: MERCURE_SUBSCRIBER_JWT_KEY
+              value: "skeleton-dev-mercure-key-change-in-production"
+            - name: MERCURE_SUBSCRIBER_JWT_ALG
+              value: "HS256"
+            - name: MERCURE_TRANSPORT_URL
+              value: "bolt:///data/mercure/mercure.db"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -62,17 +72,23 @@ spec:
               mountPath: /tmp
             - name: var
               mountPath: /app/var
+            - name: caddy-config
+              mountPath: /config/caddy
+            - name: caddy-data
+              mountPath: /data/caddy
+            - name: mercure-data
+              mountPath: /data/mercure
           resources:
             {{- toYaml .Values.global.api.resources | nindent 12 }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/v1/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/v1/health
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -80,4 +96,10 @@ spec:
         - name: tmp
           emptyDir: {}
         - name: var
+          emptyDir: {}
+        - name: caddy-config
+          emptyDir: {}
+        - name: caddy-data
+          emptyDir: {}
+        - name: mercure-data
           emptyDir: {}
